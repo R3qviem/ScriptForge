@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScriptForge - Editor Script YouTube</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #00adb5;
+        }
+        
+        .workspace-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #1177bb;
+        }
+        
+        .btn-secondary {
+            background: #3e3e42;
+        }
+        
+        .btn-secondary:hover {
+            background: #4e4e52;
+        }
+        
+        .btn-success {
+            background: #0d7377;
+        }
+        
+        .btn-success:hover {
+            background: #14a085;
+        }
+        
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        
+        .file-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+        
+        .file-item:hover {
+            background: #2a2d2e;
+        }
+        
+        .file-item.active {
+            background: #0e639c;
+        }
+        
+        .file-name {
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .file-item:hover .file-actions {
+            opacity: 1;
+        }
+        
+        .file-action {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .file-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Main Area */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toolbar {
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 16px;
+        }
+        
+        .toolbar-btn {
+            background: #3e3e42;
+            color: #e0e0e0;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .toolbar-btn:hover {
+            background: #4e4e52;
+        }
+        
+        .toolbar-btn.active {
+            background: #0e639c;
+        }
+        
+        .toolbar-separator {
+            width: 1px;
+            height: 20px;
+            background: #3e3e42;
+            margin: 0 8px;
+        }
+        
+        .editor-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        
+        .editor {
+            flex: 1;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border: none;
+            padding: 16px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+        
+        .preview {
+            flex: 1;
+            background: #1e1e1e;
+            padding: 16px;
+            overflow-y: auto;
+            border-left: 1px solid #3e3e42;
+            display: none;
+        }
+        
+        .preview.active {
+            display: block;
+        }
+        
+        .preview h1, .preview h2, .preview h3 {
+            color: #00adb5;
+            margin-bottom: 12px;
+        }
+        
+        .preview h1 {
+            font-size: 24px;
+            border-bottom: 2px solid #3e3e42;
+            padding-bottom: 8px;
+        }
+        
+        .preview h2 {
+            font-size: 20px;
+        }
+        
+        .preview h3 {
+            font-size: 18px;
+        }
+        
+        .preview p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        
+        .preview ul, .preview ol {
+            margin-bottom: 12px;
+            padding-left: 20px;
+        }
+        
+        .preview li {
+            margin-bottom: 4px;
+        }
+        
+        .preview blockquote {
+            border-left: 4px solid #00adb5;
+            padding-left: 16px;
+            margin: 12px 0;
+            color: #b0b0b0;
+            font-style: italic;
+        }
+        
+        .preview code {
+            background: #2d2d30;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            color: #e0e0e0;
+        }
+        
+        .preview pre {
+            background: #2d2d30;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        
+        .preview pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        .status-bar {
+            background: #007acc;
+            color: white;
+            padding: 4px 16px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #2d2d30;
+            padding: 24px;
+            border-radius: 8px;
+            min-width: 400px;
+            max-width: 500px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #e0e0e0;
+        }
+        
+        .modal-input {
+            width: 100%;
+            background: #3e3e42;
+            border: 1px solid #4e4e52;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .modal-input:focus {
+            outline: none;
+            border-color: #00adb5;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .workspace-info {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-top: 8px;
+        }
+        
+        .no-workspace {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #b0b0b0;
+            font-size: 16px;
+        }
+        
+        .split-view .editor {
+            flex: 0 0 50%;
+        }
+        
+        .split-view .preview {
+            display: block;
+            flex: 0 0 50%;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #2d2d30;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4e4e52;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5e5e62;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">ScriptForge</div>
+                <div class="workspace-controls">
+                    <button class="btn" id="openFileBtn">📂 Apri File</button>
+                    <button class="btn btn-secondary" id="saveBtn">💾 Salva</button>
+                    <button class="btn btn-secondary" id="saveAsBtn">💾 Salva Con Nome</button>
+                </div>
+                <div class="workspace-info" id="workspaceInfo">Pronto per editare</div>
+            </div>
+            <div class="file-list" id="fileList">
+                <div class="no-workspace">Usa "Apri File" per iniziare</div>
+            </div>
+        </div>
+        
+        <!-- Main Area -->
+        <div class="main-area">
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" id="boldBtn" title="Grassetto (Ctrl+B)">B</button>
+                    <button class="toolbar-btn" id="italicBtn" title="Corsivo (Ctrl+I)">I</button>
+                    <button class="toolbar-btn" id="underlineBtn" title="Sottolineato (Ctrl+U)">U</button>
+                </div>
+                <div class="toolbar-separator"></div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" id="h1Btn" title="Titolo 1">H1</button>
+                    <button class="toolbar-btn" id="h2Btn" title="Titolo 2">H2</button>
+                    <button class="toolbar-btn" id="h3Btn" title="Titolo 3">H3</button>
+                </div>
+                <div class="toolbar-separator"></div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" id="listBtn" title="Lista puntata">• Lista</button>
+                    <button class="toolbar-btn" id="numListBtn" title="Lista numerata">1. Lista</button>
+                    <button class="toolbar-btn" id="quoteBtn" title="Citazione">" Citazione</button>
+                </div>
+                <div class="toolbar-separator"></div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" id="codeBtn" title="Blocco codice">{} Codice</button>
+                    <button class="toolbar-btn" id="timestampBtn" title="Inserisci timestamp">🕐 Timestamp</button>
+                </div>
+                <div class="toolbar-separator"></div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" id="findBtn" title="Trova (Ctrl+F)">🔍 Trova</button>
+                    <button class="toolbar-btn" id="previewBtn" title="Anteprima (Ctrl+P)">👁 Anteprima</button>
+                </div>
+            </div>
+            
+            <div class="editor-container">
+                <textarea class="editor" id="editor" placeholder="Inizia a scrivere il tuo script..."></textarea>
+                <div class="preview" id="preview"></div>
+            </div>
+            
+            <div class="status-bar">
+                <div class="status-left">
+                    <span id="statusText">Pronto</span>
+                    <span id="fileInfo">Nessun file aperto</span>
+                </div>
+                <div class="status-right">
+                    <span id="wordCount">0 parole</span>
+                    <span id="lastSave">Mai salvato</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    
+    <div class="modal" id="saveAsModal">
+        <div class="modal-content">
+            <div class="modal-title">Salva Come</div>
+            <input type="text" class="modal-input" id="saveAsFileName" placeholder="Nome del file (es. script_video.txt)" value="script.txt">
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelSaveAs">Annulla</button>
+                <button class="btn" id="confirmSaveAs">Salva</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="findModal">
+        <div class="modal-content">
+            <div class="modal-title">Trova e Sostituisci</div>
+            <input type="text" class="modal-input" id="findText" placeholder="Testo da cercare">
+            <input type="text" class="modal-input" id="replaceText" placeholder="Testo di sostituzione">
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelFind">Annulla</button>
+                <button class="btn" id="findNext">Trova</button>
+                <button class="btn" id="replaceAll">Sostituisci tutto</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ScriptForge - Editor Script YouTube
+        class ScriptForge {
+            constructor() {
+                this.currentWorkspace = null;
+                this.currentFile = null;
+                this.files = new Map();
+                this.isModified = false;
+                this.autoSaveInterval = null;
+                this.lastAutoSave = null;
+                this.workspaceName = '';
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.startAutoSave();
+            }
+            
+            initializeElements() {
+                this.editor = document.getElementById('editor');
+                this.preview = document.getElementById('preview');
+                this.fileList = document.getElementById('fileList');
+                this.workspaceInfo = document.getElementById('workspaceInfo');
+                this.statusText = document.getElementById('statusText');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.wordCount = document.getElementById('wordCount');
+                this.lastSave = document.getElementById('lastSave');
+                
+                // Buttons
+                this.openFileBtn = document.getElementById('openFileBtn');
+                this.saveBtn = document.getElementById('saveBtn');
+                this.saveAsBtn = document.getElementById('saveAsBtn');
+                
+                // Toolbar buttons
+                this.boldBtn = document.getElementById('boldBtn');
+                this.italicBtn = document.getElementById('italicBtn');
+                this.underlineBtn = document.getElementById('underlineBtn');
+                this.h1Btn = document.getElementById('h1Btn');
+                this.h2Btn = document.getElementById('h2Btn');
+                this.h3Btn = document.getElementById('h3Btn');
+                this.listBtn = document.getElementById('listBtn');
+                this.numListBtn = document.getElementById('numListBtn');
+                this.quoteBtn = document.getElementById('quoteBtn');
+                this.codeBtn = document.getElementById('codeBtn');
+                this.timestampBtn = document.getElementById('timestampBtn');
+                this.findBtn = document.getElementById('findBtn');
+                this.previewBtn = document.getElementById('previewBtn');
+                
+                // Modals
+                this.saveAsModal = document.getElementById('saveAsModal');
+                this.findModal = document.getElementById('findModal');
+                this.saveAsFileName = document.getElementById('saveAsFileName');
+                this.findText = document.getElementById('findText');
+                this.replaceText = document.getElementById('replaceText');
+            }
+            
+            bindEvents() {
+                // File controls
+                this.openFileBtn.addEventListener('click', () => this.openFile());
+                this.saveBtn.addEventListener('click', () => this.saveCurrentFile());
+                this.saveAsBtn.addEventListener('click', () => this.showSaveAsModal());
+                
+                // Editor events
+                this.editor.addEventListener('input', () => this.onEditorChange());
+                this.editor.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+                
+                // Toolbar events
+                this.boldBtn.addEventListener('click', () => this.insertMarkdown('**', '**'));
+                this.italicBtn.addEventListener('click', () => this.insertMarkdown('*', '*'));
+                this.underlineBtn.addEventListener('click', () => this.insertMarkdown('<u>', '</u>'));
+                this.h1Btn.addEventListener('click', () => this.insertMarkdown('# ', '', true));
+                this.h2Btn.addEventListener('click', () => this.insertMarkdown('## ', '', true));
+                this.h3Btn.addEventListener('click', () => this.insertMarkdown('### ', '', true));
+                this.listBtn.addEventListener('click', () => this.insertMarkdown('- ', '', true));
+                this.numListBtn.addEventListener('click', () => this.insertMarkdown('1. ', '', true));
+                this.quoteBtn.addEventListener('click', () => this.insertMarkdown('> ', '', true));
+                this.codeBtn.addEventListener('click', () => this.insertMarkdown('```\n', '\n```', true));
+                this.timestampBtn.addEventListener('click', () => this.insertTimestamp());
+                this.findBtn.addEventListener('click', () => this.showFindModal());
+                this.previewBtn.addEventListener('click', () => this.togglePreview());
+                
+                // Modal events
+                document.getElementById('confirmSaveAs').addEventListener('click', () => this.saveAsFile());
+                document.getElementById('cancelSaveAs').addEventListener('click', () => this.hideSaveAsModal());
+                document.getElementById('findNext').addEventListener('click', () => this.findNext());
+                document.getElementById('replaceAll').addEventListener('click', () => this.replaceAll());
+                document.getElementById('cancelFind').addEventListener('click', () => this.hideFindModal());
+                
+                // Close modals on escape
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.hideAllModals();
+                    }
+                });
+            }
+            
+            async openFile() {
+                try {
+                    if ('showOpenFilePicker' in window) {
+                        const [fileHandle] = await window.showOpenFilePicker({
+                            types: [
+                                {
+                                    description: 'File di testo',
+                                    accept: {
+                                        'text/plain': ['.txt', '.md']
+                                    }
+                                }
+                            ]
+                        });
+                        
+                        const file = await fileHandle.getFile();
+                        const content = await file.text();
+                        
+                        this.editor.value = content;
+                        this.currentFile = fileHandle;
+                        this.isModified = false;
+                        
+                        this.updateStatus(`File aperto: ${file.name}`);
+                        this.updateWordCount();
+                        this.updateLastSave();
+                        this.updateFileInfo();
+                    } else {
+                        // Fallback: usa input file tradizionale
+                        this.openFileFallback();
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        this.showMessage('Errore nell\'aprire il file: ' + error.message, 'error');
+                    }
+                }
+            }
+            
+            openFileFallback() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.txt,.md';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.editor.value = e.target.result;
+                            this.currentFile = { name: file.name, isFallback: true };
+                            this.isModified = false;
+                            
+                            this.updateStatus(`File aperto: ${file.name}`);
+                            this.updateWordCount();
+                            this.updateLastSave();
+                            this.updateFileInfo();
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+            }
+            
+            
+            async saveCurrentFile() {
+                if (!this.currentFile) {
+                    this.showMessage('Nessun file aperto da salvare', 'warning');
+                    return;
+                }
+                
+                try {
+                    if (this.currentFile.isFallback) {
+                        // Per file aperti con fallback, non possiamo salvare direttamente
+                        this.showMessage('Impossibile salvare direttamente. Usa "Salva Con Nome" per scaricare il file modificato.', 'warning');
+                        return;
+                    }
+                    
+                    const writable = await this.currentFile.createWritable();
+                    await writable.write(this.editor.value);
+                    await writable.close();
+                    
+                    this.isModified = false;
+                    this.lastAutoSave = new Date();
+                    this.updateStatus('File salvato');
+                    this.updateLastSave();
+                } catch (error) {
+                    this.showMessage('Errore nel salvare il file: ' + error.message, 'error');
+                }
+            }
+            
+            saveAsFileDirect() {
+                const fileName = this.currentFile.name || 'script.txt';
+                try {
+                    // Crea e scarica il file automaticamente
+                    const blob = new Blob([this.editor.value], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    this.isModified = false;
+                    this.lastAutoSave = new Date();
+                    this.updateStatus(`File salvato: ${fileName}`);
+                    this.updateLastSave();
+                } catch (error) {
+                    this.showMessage('Errore nel salvare il file: ' + error.message, 'error');
+                }
+            }
+            
+            
+            showSaveAsModal() {
+                this.saveAsModal.classList.add('active');
+                this.saveAsFileName.focus();
+                this.saveAsFileName.select();
+            }
+            
+            hideSaveAsModal() {
+                this.saveAsModal.classList.remove('active');
+            }
+            
+            hideNewFileModal() {
+                this.newFileModal.classList.remove('active');
+            }
+            
+            showFindModal() {
+                this.findModal.classList.add('active');
+                this.findText.focus();
+                this.findText.select();
+            }
+            
+            hideFindModal() {
+                this.findModal.classList.remove('active');
+            }
+            
+            hideAllModals() {
+                this.hideSaveAsModal();
+                this.hideFindModal();
+            }
+            
+            findNext() {
+                const searchText = this.findText.value;
+                if (!searchText) return;
+                
+                const editor = this.editor;
+                const startPos = editor.selectionStart;
+                const content = editor.value;
+                const index = content.indexOf(searchText, startPos);
+                
+                if (index !== -1) {
+                    editor.focus();
+                    editor.setSelectionRange(index, index + searchText.length);
+                } else {
+                    this.showMessage('Testo non trovato', 'warning');
+                }
+            }
+            
+            replaceAll() {
+                const searchText = this.findText.value;
+                const replaceText = this.replaceText.value;
+                
+                if (!searchText) return;
+                
+                const newContent = this.editor.value.replace(new RegExp(searchText, 'g'), replaceText);
+                this.editor.value = newContent;
+                this.onEditorChange();
+                this.hideFindModal();
+                this.showMessage('Sostituzione completata', 'success');
+            }
+            
+            async saveAsFile() {
+                const fileName = this.saveAsFileName.value.trim();
+                if (!fileName) {
+                    this.showMessage('Inserisci un nome file', 'warning');
+                    return;
+                }
+                
+                try {
+                    // Crea e scarica il file
+                    const blob = new Blob([this.editor.value], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    this.hideSaveAsModal();
+                    this.showMessage(`File scaricato: ${fileName}`, 'success');
+                } catch (error) {
+                    this.showMessage('Errore nel salvare il file: ' + error.message, 'error');
+                }
+            }
+            
+            insertMarkdown(prefix, suffix, newLine = false) {
+                const editor = this.editor;
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const selectedText = editor.value.substring(start, end);
+                
+                let newText;
+                if (newLine) {
+                    newText = prefix + selectedText + suffix;
+                } else {
+                    newText = prefix + selectedText + suffix;
+                }
+                
+                editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end);
+                editor.focus();
+                editor.setSelectionRange(start + prefix.length, start + prefix.length + selectedText.length);
+                this.onEditorChange();
+            }
+            
+            insertTimestamp() {
+                const now = new Date();
+                const timestamp = now.toLocaleString('it-IT');
+                this.insertMarkdown(`[${timestamp}] `, '', false);
+            }
+            
+            togglePreview() {
+                const container = document.querySelector('.editor-container');
+                const preview = this.preview;
+                
+                if (container.classList.contains('split-view')) {
+                    container.classList.remove('split-view');
+                    preview.classList.remove('active');
+                    this.previewBtn.classList.remove('active');
+                } else {
+                    container.classList.add('split-view');
+                    preview.classList.add('active');
+                    this.previewBtn.classList.add('active');
+                    this.updatePreview();
+                }
+            }
+            
+            updatePreview() {
+                if (!this.preview.classList.contains('active')) return;
+                
+                const content = this.editor.value;
+                const html = this.markdownToHtml(content);
+                this.preview.innerHTML = html;
+            }
+            
+            markdownToHtml(text) {
+                // Simple markdown parser
+                return text
+                    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
+                    .replace(/^- (.*$)/gim, '<li>$1</li>')
+                    .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
+                    .replace(/```\n([\s\S]*?)\n```/g, '<pre><code>$1</code></pre>')
+                    .replace(/\n/g, '<br>');
+            }
+            
+            handleKeyboardShortcuts(e) {
+                if (e.ctrlKey) {
+                    switch (e.key) {
+                        case 's':
+                            e.preventDefault();
+                            this.saveCurrentFile();
+                            break;
+                        case 'o':
+                            e.preventDefault();
+                            this.openFile();
+                            break;
+                        case 'f':
+                            e.preventDefault();
+                            this.showFindModal();
+                            break;
+                        case 'p':
+                            e.preventDefault();
+                            this.togglePreview();
+                            break;
+                        case 'b':
+                            e.preventDefault();
+                            this.insertMarkdown('**', '**');
+                            break;
+                        case 'i':
+                            e.preventDefault();
+                            this.insertMarkdown('*', '*');
+                            break;
+                    }
+                }
+            }
+            
+            onEditorChange() {
+                this.isModified = true;
+                this.updateStatus('Modificato');
+                this.updateWordCount();
+                this.updatePreview();
+            }
+            
+            startAutoSave() {
+                this.autoSaveInterval = setInterval(() => {
+                    if (this.isModified && this.currentFile) {
+                        this.saveCurrentFile();
+                    }
+                }, 30000); // 30 seconds
+            }
+            
+            updateStatus(message) {
+                this.statusText.textContent = message;
+            }
+            
+            updateWordCount() {
+                const text = this.editor.value;
+                const words = text.trim().split(/\s+/).filter(word => word.length > 0).length;
+                this.wordCount.textContent = `${words} parole`;
+            }
+            
+            updateLastSave() {
+                if (this.lastAutoSave) {
+                    const time = this.lastAutoSave.toLocaleTimeString('it-IT');
+                    this.lastSave.textContent = `Autosave alle ${time}`;
+                } else {
+                    this.lastSave.textContent = 'Mai salvato';
+                }
+            }
+            
+            updateFileInfo() {
+                if (this.currentFile) {
+                    this.fileInfo.textContent = this.currentFile.name;
+                } else {
+                    this.fileInfo.textContent = 'Nessun file aperto';
+                }
+            }
+            
+            showMessage(message, type = 'info') {
+                // Simple message display
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                this.updateStatus(message);
+            }
+            
+        }
+        
+        // Initialize the application
+        const scriptForge = new ScriptForge();
+    </script>
+</body>
+</html>
