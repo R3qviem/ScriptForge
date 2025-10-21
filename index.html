@@ -197,60 +197,64 @@
             position: relative;
         }
         
-        .editor {
+        #editor {
             flex: 1;
             background: #1e1e1e;
             color: #e0e0e0;
-            border: none;
             padding: 16px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 14px;
             line-height: 1.6;
-            outline: none;
             overflow-y: auto;
+            outline: none;
+            caret-color: #e0e0e0;
         }
         
-        .editor:empty:before {
+        #editor:empty:before {
             content: attr(data-placeholder);
             color: #6e6e6e;
             font-style: italic;
         }
         
-        /* Stili per l'editor con formattazione in tempo reale */
-        .editor h1, .editor h2, .editor h3 {
+        /* Stili per la formattazione WYSIWYG */
+        #editor h1 {
             color: #00adb5;
-            margin: 16px 0 12px 0;
-        }
-        
-        .editor h1 {
             font-size: 24px;
+            font-weight: 600;
+            margin: 16px 0 12px 0;
             border-bottom: 2px solid #3e3e42;
             padding-bottom: 8px;
         }
         
-        .editor h2 {
+        #editor h2 {
+            color: #00adb5;
             font-size: 20px;
+            font-weight: 600;
+            margin: 16px 0 12px 0;
         }
         
-        .editor h3 {
+        #editor h3 {
+            color: #00adb5;
             font-size: 18px;
+            font-weight: 600;
+            margin: 16px 0 12px 0;
         }
         
-        .editor p {
+        #editor p {
             margin-bottom: 12px;
             line-height: 1.6;
         }
         
-        .editor ul, .editor ol {
+        #editor ul, #editor ol {
             margin-bottom: 12px;
             padding-left: 20px;
         }
         
-        .editor li {
+        #editor li {
             margin-bottom: 4px;
         }
         
-        .editor blockquote {
+        #editor blockquote {
             border-left: 4px solid #00adb5;
             padding-left: 16px;
             margin: 12px 0;
@@ -258,7 +262,7 @@
             font-style: italic;
         }
         
-        .editor code {
+        #editor code {
             background: #2d2d30;
             padding: 2px 6px;
             border-radius: 4px;
@@ -266,7 +270,7 @@
             color: #e0e0e0;
         }
         
-        .editor pre {
+        #editor pre {
             background: #2d2d30;
             padding: 12px;
             border-radius: 6px;
@@ -274,10 +278,11 @@
             margin: 12px 0;
         }
         
-        .editor pre code {
+        #editor pre code {
             background: none;
             padding: 0;
         }
+        
         
         .status-bar {
             background: #007acc;
@@ -440,7 +445,7 @@
             </div>
             
             <div class="editor-container">
-                <div class="editor" id="editor" contenteditable="true" data-placeholder="Inizia a scrivere il tuo script..."></div>
+                <div id="editor" contenteditable="true" data-placeholder="Inizia a scrivere il tuo script..."></div>
             </div>
             
             <div class="status-bar">
@@ -545,17 +550,17 @@
                 this.editor.addEventListener('input', () => this.onEditorChange());
                 this.editor.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
                 
-                // Toolbar events
-                this.boldBtn.addEventListener('click', () => this.insertMarkdown('**', '**'));
-                this.italicBtn.addEventListener('click', () => this.insertMarkdown('*', '*'));
-                this.underlineBtn.addEventListener('click', () => this.insertMarkdown('<u>', '</u>'));
-                this.h1Btn.addEventListener('click', () => this.insertMarkdown('# ', '', true));
-                this.h2Btn.addEventListener('click', () => this.insertMarkdown('## ', '', true));
-                this.h3Btn.addEventListener('click', () => this.insertMarkdown('### ', '', true));
-                this.listBtn.addEventListener('click', () => this.insertMarkdown('- ', '', true));
-                this.numListBtn.addEventListener('click', () => this.insertMarkdown('1. ', '', true));
-                this.quoteBtn.addEventListener('click', () => this.insertMarkdown('> ', '', true));
-                this.codeBtn.addEventListener('click', () => this.insertMarkdown('```\n', '\n```', true));
+                // Toolbar events - WYSIWYG formatting
+                this.boldBtn.addEventListener('click', () => this.execCommand('bold'));
+                this.italicBtn.addEventListener('click', () => this.execCommand('italic'));
+                this.underlineBtn.addEventListener('click', () => this.execCommand('underline'));
+                this.h1Btn.addEventListener('click', () => this.formatHeading(1));
+                this.h2Btn.addEventListener('click', () => this.formatHeading(2));
+                this.h3Btn.addEventListener('click', () => this.formatHeading(3));
+                this.listBtn.addEventListener('click', () => this.execCommand('insertUnorderedList'));
+                this.numListBtn.addEventListener('click', () => this.execCommand('insertOrderedList'));
+                this.quoteBtn.addEventListener('click', () => this.formatBlockquote());
+                this.codeBtn.addEventListener('click', () => this.formatCode());
                 this.timestampBtn.addEventListener('click', () => this.insertTimestamp());
                 this.findBtn.addEventListener('click', () => this.showFindModal());
                 
@@ -591,7 +596,7 @@
                         const file = await fileHandle.getFile();
                         const content = await file.text();
                         
-                        this.editor.innerHTML = this.markdownToHtml(content);
+                        this.editor.innerHTML = content;
                         this.currentFile = fileHandle;
                         this.isModified = false;
                         
@@ -599,6 +604,7 @@
                         this.updateWordCount();
                         this.updateLastSave();
                         this.updateFileInfo();
+                        this.updatePreviewOverlay();
                     } else {
                         // Fallback: usa input file tradizionale
                         this.openFileFallback();
@@ -619,7 +625,7 @@
                     if (file) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
-                            this.editor.innerHTML = this.markdownToHtml(e.target.result);
+                            this.editor.innerHTML = e.target.result;
                             this.currentFile = { name: file.name, isFallback: true };
                             this.isModified = false;
                             
@@ -627,6 +633,7 @@
                             this.updateWordCount();
                             this.updateLastSave();
                             this.updateFileInfo();
+                            this.updatePreviewOverlay();
                         };
                         reader.readAsText(file);
                     }
@@ -649,7 +656,7 @@
                     }
                     
                     const writable = await this.currentFile.createWritable();
-                    const content = this.htmlToMarkdown(this.editor.innerHTML);
+                    const content = this.editor.innerHTML;
                     await writable.write(content);
                     await writable.close();
                     
@@ -666,8 +673,8 @@
                 const fileName = this.currentFile.name || 'script.txt';
                 try {
                     // Crea e scarica il file automaticamente
-                    const content = this.htmlToMarkdown(this.editor.innerHTML);
-                    const blob = new Blob([content], { type: 'text/plain' });
+                    const content = this.editor.innerHTML;
+                    const blob = new Blob([content], { type: 'text/html' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -720,30 +727,12 @@
                 const searchText = this.findText.value;
                 if (!searchText) return;
                 
-                const editor = this.editor;
-                const content = editor.textContent || editor.innerText || '';
-                const selection = window.getSelection();
+                this.editor.focus();
+                const result = window.find(searchText, false, false, true, false, false, false);
                 
-                if (selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0);
-                    const startPos = range.startOffset;
-                    const index = content.indexOf(searchText, startPos);
-                    
-                    if (index !== -1) {
-                        const newRange = document.createRange();
-                        const textNode = editor.firstChild;
-                        if (textNode) {
-                            newRange.setStart(textNode, index);
-                            newRange.setEnd(textNode, index + searchText.length);
-                            selection.removeAllRanges();
-                            selection.addRange(newRange);
-                        }
-                    } else {
-                        this.showMessage('Testo non trovato', 'warning');
-                    }
+                if (!result) {
+                    this.showMessage('Testo non trovato', 'warning');
                 }
-                
-                editor.focus();
             }
             
             replaceAll() {
@@ -752,12 +741,14 @@
                 
                 if (!searchText) return;
                 
-                const content = this.editor.textContent || this.editor.innerText || '';
+                this.editor.focus();
+                const content = this.editor.innerHTML;
                 const newContent = content.replace(new RegExp(searchText, 'g'), replaceText);
-                this.editor.innerHTML = this.markdownToHtml(newContent);
-                this.onEditorChange();
+                this.editor.innerHTML = newContent;
+                
                 this.hideFindModal();
                 this.showMessage('Sostituzione completata', 'success');
+                this.onEditorChange();
             }
             
             async saveAsFile() {
@@ -769,8 +760,8 @@
                 
                 try {
                     // Crea e scarica il file
-                    const content = this.htmlToMarkdown(this.editor.innerHTML);
-                    const blob = new Blob([content], { type: 'text/plain' });
+                    const content = this.editor.innerHTML;
+                    const blob = new Blob([content], { type: 'text/html' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -787,76 +778,93 @@
                 }
             }
             
-            insertMarkdown(prefix, suffix, newLine = false) {
-                const editor = this.editor;
+            execCommand(command, value = null) {
+                this.editor.focus();
+                document.execCommand(command, false, value);
+                this.onEditorChange();
+            }
+            
+            formatHeading(level) {
+                this.editor.focus();
                 const selection = window.getSelection();
-                
                 if (selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
                     const selectedText = range.toString();
                     
-                    let newText;
-                    if (newLine) {
-                        newText = prefix + selectedText + suffix;
+                    if (selectedText) {
+                        // Se c'è testo selezionato, formatta solo quello
+                        const heading = document.createElement(`h${level}`);
+                        heading.textContent = selectedText;
+                        range.deleteContents();
+                        range.insertNode(heading);
                     } else {
-                        newText = prefix + selectedText + suffix;
+                        // Se non c'è testo selezionato, inserisci un nuovo heading
+                        const heading = document.createElement(`h${level}`);
+                        heading.textContent = `Titolo ${level}`;
+                        range.insertNode(heading);
                     }
-                    
-                    range.deleteContents();
-                    range.insertNode(document.createTextNode(newText));
-                    
-                    // Riposiziona il cursore
-                    const newRange = document.createRange();
-                    newRange.setStart(range.startContainer, range.startOffset + prefix.length);
-                    newRange.setEnd(range.startContainer, range.startOffset + prefix.length + selectedText.length);
-                    selection.removeAllRanges();
-                    selection.addRange(newRange);
                 }
-                
-                editor.focus();
+                this.onEditorChange();
+            }
+            
+            formatBlockquote() {
+                this.editor.focus();
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const selectedText = range.toString();
+                    
+                    if (selectedText) {
+                        const blockquote = document.createElement('blockquote');
+                        blockquote.textContent = selectedText;
+                        range.deleteContents();
+                        range.insertNode(blockquote);
+                    } else {
+                        const blockquote = document.createElement('blockquote');
+                        blockquote.textContent = 'Citazione';
+                        range.insertNode(blockquote);
+                    }
+                }
+                this.onEditorChange();
+            }
+            
+            formatCode() {
+                this.editor.focus();
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const selectedText = range.toString();
+                    
+                    if (selectedText) {
+                        const code = document.createElement('code');
+                        code.textContent = selectedText;
+                        range.deleteContents();
+                        range.insertNode(code);
+                    } else {
+                        const code = document.createElement('code');
+                        code.textContent = 'codice';
+                        range.insertNode(code);
+                    }
+                }
                 this.onEditorChange();
             }
             
             insertTimestamp() {
                 const now = new Date();
                 const timestamp = now.toLocaleString('it-IT');
-                this.insertMarkdown(`[${timestamp}] `, '', false);
+                this.editor.focus();
+                document.execCommand('insertText', false, `[${timestamp}] `);
+                this.onEditorChange();
             }
             
             
-            markdownToHtml(text) {
-                // Simple markdown parser
-                return text
-                    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-                    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/`(.*?)`/g, '<code>$1</code>')
-                    .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
-                    .replace(/^- (.*$)/gim, '<li>$1</li>')
-                    .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
-                    .replace(/```\n([\s\S]*?)\n```/g, '<pre><code>$1</code></pre>')
-                    .replace(/\n/g, '<br>');
-            }
             
-            htmlToMarkdown(html) {
-                // Convert HTML back to markdown
-                return html
-                    .replace(/<h3>(.*?)<\/h3>/g, '### $1\n')
-                    .replace(/<h2>(.*?)<\/h2>/g, '## $1\n')
-                    .replace(/<h1>(.*?)<\/h1>/g, '# $1\n')
-                    .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-                    .replace(/<em>(.*?)<\/em>/g, '*$1*')
-                    .replace(/<code>(.*?)<\/code>/g, '`$1`')
-                    .replace(/<blockquote>(.*?)<\/blockquote>/g, '> $1')
-                    .replace(/<li>(.*?)<\/li>/g, '- $1')
-                    .replace(/<pre><code>(.*?)<\/code><\/pre>/g, '```\n$1\n```')
-                    .replace(/<br\s*\/?>/g, '\n')
-                    .replace(/<p>(.*?)<\/p>/g, '$1\n')
-                    .replace(/<div>(.*?)<\/div>/g, '$1\n')
-                    .replace(/\n+/g, '\n')
-                    .trim();
+            
+            
+            onEditorChange() {
+                this.isModified = true;
+                this.updateStatus('Modificato');
+                this.updateWordCount();
             }
             
             handleKeyboardShortcuts(e) {
@@ -876,20 +884,14 @@
                             break;
                         case 'b':
                             e.preventDefault();
-                            this.insertMarkdown('**', '**');
+                            this.execCommand('bold');
                             break;
                         case 'i':
                             e.preventDefault();
-                            this.insertMarkdown('*', '*');
+                            this.execCommand('italic');
                             break;
                     }
                 }
-            }
-            
-            onEditorChange() {
-                this.isModified = true;
-                this.updateStatus('Modificato');
-                this.updateWordCount();
             }
             
             startAutoSave() {
