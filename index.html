@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ScriptForge - Editor Script YouTube</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
@@ -206,8 +206,12 @@
             font-size: 14px;
             line-height: 1.6;
             overflow-y: auto;
+            overflow-x: hidden;
             outline: none;
             caret-color: #e0e0e0;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            min-height: 200px;
         }
         
         #editor:empty:before {
@@ -393,6 +397,139 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #5e5e62;
         }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #3e3e42;
+            }
+            
+            .sidebar-header {
+                padding: 12px;
+            }
+            
+            .workspace-controls {
+                flex-direction: row;
+                gap: 8px;
+            }
+            
+            .btn {
+                flex: 1;
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+            
+            .toolbar {
+                padding: 6px 12px;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            
+            .toolbar-group {
+                margin-right: 8px;
+            }
+            
+            .toolbar-btn {
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+            
+            .toolbar-separator {
+                display: none;
+            }
+            
+            .status-bar {
+                padding: 3px 12px;
+                font-size: 11px;
+            }
+            
+            .status-left, .status-right {
+                gap: 8px;
+            }
+            
+            #editor {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .modal-content {
+                min-width: 90%;
+                max-width: 95%;
+                padding: 16px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar {
+                max-height: 150px;
+            }
+            
+            .workspace-controls {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .btn {
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+            
+            .toolbar {
+                padding: 4px 8px;
+            }
+            
+            .toolbar-btn {
+                padding: 3px 4px;
+                font-size: 10px;
+            }
+            
+            #editor {
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            .status-bar {
+                padding: 2px 8px;
+                font-size: 10px;
+            }
+        }
+        
+        /* Miglioramenti per lo scroll */
+        .editor-container {
+            overflow: hidden;
+        }
+        
+        #editor {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Scrollbar personalizzata per l'editor */
+        #editor::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #editor::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        #editor::-webkit-scrollbar-thumb {
+            background: #4e4e52;
+            border-radius: 3px;
+        }
+        
+        #editor::-webkit-scrollbar-thumb:hover {
+            background: #5e5e62;
+        }
     </style>
 </head>
 <body>
@@ -502,6 +639,7 @@
                 this.initializeElements();
                 this.bindEvents();
                 this.startAutoSave();
+                this.setupResponsive();
             }
             
             initializeElements() {
@@ -865,6 +1003,21 @@
                 this.isModified = true;
                 this.updateStatus('Modificato');
                 this.updateWordCount();
+                this.optimizeContent();
+            }
+            
+            optimizeContent() {
+                // Ottimizza il contenuto per evitare problemi di performance
+                const content = this.editor.innerHTML;
+                
+                // Se il contenuto è molto lungo, ottimizza la visualizzazione
+                if (content.length > 50000) {
+                    this.editor.style.fontSize = '13px';
+                    this.editor.style.lineHeight = '1.5';
+                } else {
+                    this.editor.style.fontSize = '14px';
+                    this.editor.style.lineHeight = '1.6';
+                }
             }
             
             handleKeyboardShortcuts(e) {
@@ -892,6 +1045,47 @@
                             break;
                     }
                 }
+            }
+            
+            setupResponsive() {
+                // Gestisce il ridimensionamento della finestra
+                window.addEventListener('resize', () => {
+                    this.updateEditorHeight();
+                });
+                
+                // Aggiorna l'altezza dell'editor al caricamento
+                this.updateEditorHeight();
+                
+                // Gestisce il touch per dispositivi mobili
+                if ('ontouchstart' in window) {
+                    this.setupTouchEvents();
+                }
+            }
+            
+            updateEditorHeight() {
+                const windowHeight = window.innerHeight;
+                const toolbarHeight = document.querySelector('.toolbar').offsetHeight;
+                const statusBarHeight = document.querySelector('.status-bar').offsetHeight;
+                const sidebarHeight = window.innerWidth <= 768 ? document.querySelector('.sidebar').offsetHeight : 0;
+                
+                const availableHeight = windowHeight - toolbarHeight - statusBarHeight - sidebarHeight - 20; // 20px di margine
+                
+                this.editor.style.maxHeight = `${Math.max(200, availableHeight)}px`;
+            }
+            
+            setupTouchEvents() {
+                // Migliora l'esperienza touch per dispositivi mobili
+                this.editor.addEventListener('touchstart', (e) => {
+                    // Previene lo zoom accidentale
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+                
+                // Gestisce il focus per dispositivi touch
+                this.editor.addEventListener('touchstart', () => {
+                    this.editor.focus();
+                });
             }
             
             startAutoSave() {
